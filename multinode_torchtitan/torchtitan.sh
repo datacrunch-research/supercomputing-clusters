@@ -45,13 +45,14 @@ export FI_EFA_SET_CUDA_SYNC_MEMOPS=0
 export NCCL_DEBUG=INFO
 export NCCL_DEBUG_SUBSYS=ALL
 export NCCL_SOCKET_IFNAME=eth0
-export NCCL_IB_DISABLE=1
+export NCCL_IB_DISABLE=0
 
+export NCCL_SOCKET_IFNAME=eth0
 export GLOO_SOCKET_IFNAME=eth0  # Helps PyTorch fallback if NCCL fails
 
 #printenv
 
-CONFIG_FILE=${CONFIG_FILE:-"./torchtitan/models/llama3/train_configs/llama3_8b.toml"}
+CONFIG_FILE=${CONFIG_FILE:-"./torchtitan/models/llama3/train_configs/debug_model.toml"}
 
 # adjust sbatch --ntasks and sbatch --nodes above and --nnodes below
 # to your specific node count, and update target launch file.
