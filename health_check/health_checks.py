@@ -100,7 +100,7 @@ class IBStatParser:
     def get_channel_adapters(self) -> List[ChannelAdapter]:
         return self.ca_list
 
-class PCIEStatParser:
+class PCIEInfo:
     def __init__(self, device_id: str):
         self.device_id = device_id
         self.device_desc: Optional[str] = None
@@ -119,7 +119,7 @@ class PCIEStatParser:
 class PCIEInfoParser:
     def __init__(self, device_id: str):
         self.device_id = device_id
-        self.info = PCIEStatParser(device_id)
+        self.info = PCIEInfo(device_id)
 
     def parse(self):
         try:
@@ -158,12 +158,16 @@ class PCIEInfoParser:
             elif "Kernel modules:" in line:
                 self.info.kernel_modules = line.split(":", 1)[1].strip()
 
-    def get_info(self) -> PCIEStatParser:
+    def get_info(self) -> PCIEInfo:
         return self.info
 
-class IBHealthCheck:
+class HealthCheck:
     def __init__(self):
-        self.results: Dict[str, str] = {}
+        self.pcie_results: Dict[str, str] = {}
+        self.hca_results: Dict[str, str] = {}
+        self.ibstatus_results: Dict[str, str] = {}
+        self.nvlink_results: Dict[str, str] = {}
+        self.misc_results: Dict[str, str] = {}
 
     def run_command(self, cmd: str) -> str:
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -176,12 +180,12 @@ class IBHealthCheck:
         parser.parse()
         info = parser.get_info()
         if info.lnkcap_speed == info.lnksta_speed and info.lnkcap_width == info.lnksta_width:
-            self.results[f"PCIe {device_id} device cap limit speed and width"] = "OK"
+            self.pcie_results[f"PCIe {device_id} device cap limit speed and width"] = "OK"
         else:
-            self.results[f"{device_id}_speed"] = "FAIL"
+            self.pcie_results[f"{device_id}_speed"] = "FAIL"
 
         if info.error:
-            self.results[f"{device_id}_error"] = info.error
+            self.pcie_results[f"{device_id}_error"] = info.error
 
     # Validates the basic health of Mellanox NICs/Infiniband Host Channel Adapters 
     def check_hca_self_test(self, command:str) -> None:
@@ -189,19 +193,19 @@ class IBHealthCheck:
         output = self.run_command(command)
 
         firmware_fail = any("Firmware Check" in line and "FAIL" in line for line in output.splitlines())
-        self.results["firmware_status"] = "FAIL" if firmware_fail else "OK"
+        self.hca_results["firmware_status"] = "FAIL" if firmware_fail else "OK"
 
         guid_lines = [line for line in output.splitlines() if "Node GUID" in line and ("NA" in line or "00:00" in line)]
-        self.results["node_guids"] = "FAIL" if guid_lines else "OK"
+        self.hca_results["node_guids"] = "FAIL" if guid_lines else "OK"
 
         match = re.search(r"Number of CA Ports Active.*?(\d+)", output)
         if not match or int(match.group(1)) < 1:
-            self.results["active_ports"] = "FAIL"
+            self.hca_results["active_ports"] = "FAIL"
         else:
-            self.results["active_ports"] = "OK"
+            self.hca_results["active_ports"] = "OK"
 
         match = re.search(r"Host Driver Version\s+\.\.+\s+(.*)", output)
-        self.results["driver_version"] = match.group(1).strip() if match else "Unavailable"
+        self.hca_results["driver_version"] = match.group(1).strip() if match else "Unavailable"
 
     # Verifies link state and type of each HCA port.
     def check_ibstatus(self,command:str, expected_active_count: int = 8) -> None:
@@ -209,9 +213,9 @@ class IBHealthCheck:
         output = self.run_command(command)
         try:
             active_count = int(output.strip())
-            self.results["ibstatus_active"] = "OK" if active_count == expected_active_count else f"FAIL ({active_count}/{expected_active_count})"
+            self.ibstatus_results["ibstatus_active"] = "OK" if active_count == expected_active_count else f"FAIL ({active_count}/{expected_active_count})"
         except ValueError:
-            self.results["ibstatus_active"] = "FAIL (unreadable output)"
+            self.ibstatus_results["ibstatus_active"] = "FAIL (unreadable output)"
 
     # Checks the consistency of NVLink link speeds between GPUs
     def check_nvlink_speed_consistency(self, nvlink_output: str) -> None:
@@ -239,31 +243,62 @@ class IBHealthCheck:
                             inconsistent_links[current_gpu] = []
                         inconsistent_links[current_gpu].append(f"{link_id}: {speed_val} GB/s")
                 except Exception as e:
-                    self.results["nvlink_speed"] = f"FAIL: Could not parse speed line '{line}'"
+                    self.nvlink_results["nvlink_speed"] = f"FAIL: Could not parse speed line '{line}'"
                     return
 
         if inconsistent_links:
             detail_lines = [
                 f"{gpu} -> {', '.join(link_infos)}" for gpu, link_infos in inconsistent_links.items()
             ]
-            self.results["nvlink_speed"] = f"FAIL: inconsistent link speeds\n" + "\n".join(detail_lines)
+            self.nvlink_results["nvlink_speed"] = f"FAIL: inconsistent link speeds\n" + "\n".join(detail_lines)
         else:
-            self.results["nvlink_speed"] = "OK"
+            self.nvlink_results["nvlink_speed"] = "OK"
 
+    def check_nvlink_errors(self, nvlink_err_output: str) -> None:
+        print("Checking NVLink error counters...")
+
+        current_gpu = None
+        errors_detected = {}
+
+        for line in nvlink_err_output.splitlines():
+            line = line.strip()
+            if line.startswith("GPU"):
+                current_gpu = line.split(":")[0]
+            elif line.startswith("Link") and current_gpu:
+                link_match = re.match(r"Link (\d+): .*", line)
+                if not link_match:
+                    continue
+                link_id = f"Link {link_match.group(1)}"
+                counters = re.findall(r"(\w+ Error Counter): (\d+)", line)
+                for counter_name, value in counters:
+                    if int(value) > 0:
+                        if current_gpu not in errors_detected:
+                            errors_detected[current_gpu] = []
+                        errors_detected[current_gpu].append(f"{link_id} - {counter_name} = {value}")
+
+        if errors_detected:
+            lines = [f"{gpu}: {', '.join(errors)}" for gpu, errors in errors_detected.items()]
+            self.nvlink_results["nvlink_errors"] = "FAIL:\n" + "\n".join(lines)
+        else:
+            self.nvlink_results["nvlink_errors"] = "OK"
+    
     def net_topology(self) -> None:
             print("Checking network topology")
             cmd = "nvidia-smi topo -m"
             output = self.run_command(cmd)
-            self.results["Net topology"] = output
+            self.misc_results["Net topology"] = output
 
     def run_all(self) -> Dict[str, str]:
-        self.check_hca_self_test(self.run_command("sudo flock -w 90 -F /usr/bin/hca_self_test.ofed /usr/bin/hca_self_test.ofed </dev/null"))
-        self.check_ibstatus(self.run_command("ibstatus | grep -B 2 'InfiniBand' | grep -c ACTIVE"))
+        self.check_hca_self_test("sudo flock -w 90 -F /usr/bin/hca_self_test.ofed /usr/bin/hca_self_test.ofed </dev/null")
+        self.check_ibstatus("ibstatus | grep -B 2 'InfiniBand' | grep -c ACTIVE")
         self.check_pcie_info()
         #self.net_topology()
         self.check_nvlink_speed_consistency(self.run_command("nvidia-smi nvlink --status"))
         self.check_nvlink_errors(self.run_command("nvidia-smi nvlink --errorcounters"))
-        return self.results
+    
+    def print_results(self):
+        attributes = [attr for attr in dir(self) if not attr.startswith('__') and not callable(getattr(self, attr))]
+        print(attributes)
 
     def test_IBStatParser():
         test="""
@@ -472,38 +507,19 @@ GPU 1: NVIDIA H200 (UUID: GPU-9e8682f0-0d01-e118-3a86-008e972bfe2a)
         checker.check_nvlink_speed_consistency(test_fail)
         print(checker.results["nvlink_speed"])
 
-    def check_nvlink_errors(self, nvlink_err_output: str) -> None:
-        print("Checking NVLink error counters...")
+    def print_results(self):
+        for attr, value in vars(self).items():
+            if not attr.startswith("_"):
+                print(f"{attr}: {value}")
 
-        current_gpu = None
-        errors_detected = {}
-
-        for line in nvlink_err_output.splitlines():
-            line = line.strip()
-            if line.startswith("GPU"):
-                current_gpu = line.split(":")[0]
-            elif line.startswith("Link") and current_gpu:
-                link_match = re.match(r"Link (\d+): .*", line)
-                if not link_match:
-                    continue
-                link_id = f"Link {link_match.group(1)}"
-                counters = re.findall(r"(\w+ Error Counter): (\d+)", line)
-                for counter_name, value in counters:
-                    if int(value) > 0:
-                        if current_gpu not in errors_detected:
-                            errors_detected[current_gpu] = []
-                        errors_detected[current_gpu].append(f"{link_id} - {counter_name} = {value}")
-
-        if errors_detected:
-            lines = [f"{gpu}: {', '.join(errors)}" for gpu, errors in errors_detected.items()]
-            self.results["nvlink_errors"] = "FAIL:\n" + "\n".join(lines)
-        else:
-            self.results["nvlink_errors"] = "OK"
 
 if __name__ == "__main__":
     
-    checker = IBHealthCheck()
-    results = checker.run_all()
+    checker = HealthCheck()
+    checker.run_all()
     print("\nInfiniband Health Check Results:")
+    checker.print_results()
+    """
     for key, value in results.items():
         print(f"{key}: {value}")
+    """
