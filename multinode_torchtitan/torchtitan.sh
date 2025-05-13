@@ -42,13 +42,13 @@ export CUDA_LAUNCH_BLOCKING=0
 export NCCL_BUFFSIZE=2097152
 #export TORCH_DIST_INIT_BARRIER=1
 export FI_EFA_SET_CUDA_SYNC_MEMOPS=0
+export NCCL_IB_HCA=mlx5
 export NCCL_DEBUG=INFO
 export NCCL_DEBUG_SUBSYS=ALL
-export NCCL_SOCKET_IFNAME=eth0
+export NCCL_NET_GDR_LEVEL=5
 export NCCL_IB_DISABLE=0
+export NCCL_NET=IB
 
-export NCCL_SOCKET_IFNAME=eth0
-export GLOO_SOCKET_IFNAME=eth0  # Helps PyTorch fallback if NCCL fails
 
 #printenv
 
