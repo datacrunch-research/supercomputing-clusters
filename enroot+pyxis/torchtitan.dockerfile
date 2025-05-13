@@ -37,6 +37,8 @@ RUN git clone https://github.com/pytorch/torchtitan
 # Change to the repo directory using WORKDIR
 WORKDIR /workspace/torchtitan
 
+RUN mkdir -p /root/.cache/huggingface
+
 RUN pip install -r requirements.txt
 
 # For CUDA 12.8 on worker nodes
@@ -46,5 +48,5 @@ RUN pip install torch torchvision torchaudio --index-url https://download.pytorc
 RUN python3 scripts/download_tokenizer.py --repo_id meta-llama/Meta-Llama-3.1-8B --tokenizer_path "original"      
 
 
-# docker build . --build-arg HF_TOKEN="$HF_TOKEN" -t torchtitan_cuda128_torch27
-# docker run --gpus all --shm-size 32g --network=host -v /mnt/local_nvme/rodri:/root/.cache/huggingface --name torchtitan_workload -it --rm --ipc=host torchtitan_cuda126_torch26 bash -c 'CONFIG_FILE="./train_configs/llama3_8b.toml" ./run_llama_train.sh'
+# docker build -f torchtitan.dockerfile --build-arg HF_TOKEN="$HF_TOKEN" -t torchtitan_cuda128_torch27 .
+# docker run --gpus all --shm-size 32g --network=host -v /home/ubuntu/.cache/huggingface:/root/.cache/huggingface --name torchtitan_workload -it --rm --ipc=host torchtitan_cuda128_torch27 bash -c 'CONFIG_FILE="./train_configs/llama3_8b.toml" ./run_llama_train.sh'
