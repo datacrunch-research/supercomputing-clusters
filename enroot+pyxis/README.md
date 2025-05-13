@@ -1,3 +1,5 @@
+# Enroot and pyxis testing
+
 ```bash
 sudo srun --container-image=ubuntu grep PRETTY /etc/os-release
 ```
@@ -52,3 +54,29 @@ sudo srun --container-image=ubuntu grep PRETTY /etc/os-release
     https://github.com/NVIDIA/pyxis/issues/62
     
     https://github.com/NVIDIA/pyxis/issues/12
+
+# Torchtitan over enroot + pyxis
+
+## Enroot testing:
+
+1. In compute nodes, build image with:
+
+```bash
+docker build -f torchtitan.dockerfile --build-arg HF_TOKEN="$HF_TOKEN" -t torchtitan_cuda128_torch27 .
+```
+
+2. [Import](https://github.com/NVIDIA/enroot/blob/master/doc/cmd/import.md) dockerd image to enroot (Can be done with docker://IMAGE:TAG from registry)
+
+```bash
+enroot import dockerd://torchtitan_cuda128_torch27
+```
+
+3. create enroot container
+```bash
+enroot create -n enroot_torchtitan /home/ubuntu/torchtitan_cuda128_torch27.sqsh
+```
+
+4. test it
+```bash
+enroot start enroot_torchtitan sh -c 'grep PRETTY /etc/os-release'
+````
