@@ -11,8 +11,10 @@
 #SBATCH --container-name=torchtitan
 #SBATCH --container-mounts=/home/ubuntu/.cache/huggingface:/root/.cache/huggingface
 #SBATCH --no-container-mount-home
+#SBATCH --container-remap-root
+#SBATCH --container-writable
 
+CONFIG_FILE=${CONFIG_FILE:-"torchtitan/models/llama3/train_configs/debug_model.toml"}
 
 # ETA: 10 minutes
-echo "Running inside container:"
-grep PRETTY /etc/os-release
+bash run_train.sh --job.config_file ${CONFIG_FILE}
