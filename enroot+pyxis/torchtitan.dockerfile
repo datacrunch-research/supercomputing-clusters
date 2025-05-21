@@ -27,7 +27,12 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libsm6 \
     libxrender1 \
-    libssl-dev
+    libssl-dev \
+    libibverbs1 \
+    rdma-core \
+    ibverbs-utils \
+    libmlx5-1 \
+    infiniband-diags
     # Cleanup command to remove the apt cache and reduce the image size: # IMPORTANT: Enforces using sudo apt update when entering the container
     #&& rm -rf /var/lib/apt/lists/*
 
