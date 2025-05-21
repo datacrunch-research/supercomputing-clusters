@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=multinode_torch_distributed
 #SBATCH --nodes=2
-#SBATCH --ntasks-per-node=8
+#SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=8
 #SBATCH --cpus-per-task=5
 #SBATCH --partition=gpus
