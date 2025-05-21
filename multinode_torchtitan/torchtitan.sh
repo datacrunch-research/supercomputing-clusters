@@ -33,7 +33,6 @@ export TORCHELASTIC_ERROR_FILE=./error-${SLURM_JOBID}-${SLURM_NODEID}.json
 export OMP_NUM_THREADS=1
 export PYTHONPATH=$PYTHONPATH:/home/ubuntu/torchtitan
 
-export LD_LIBRARY_PATH=/opt/amazon/efa/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
 export CUDA_LAUNCH_BLOCKING=0
 
