@@ -13,7 +13,7 @@ HEADNODE_HOST=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n1)
 MASTER_ADDR=$(getent hosts "$HEADNODE_HOST" | grep -Eo '10\.[0-9]+\.[0-9]+\.[0-9]+' | head -n1)
 MASTER_PORT=$((5000 + SLURM_JOB_ID % 10000))
 
-CONFIG_FILE=${CONFIG_FILE:-"torchtitan/models/llama3/train_configs/debug_model.toml"}
+CONFIG_FILE=${CONFIG_FILE:-"torchtitan/models/llama3/train_configs/llama3_70b.toml"}
 
 
 echo "======== Distributed Config ========"
@@ -25,13 +25,13 @@ echo "All Hosts:"
 scontrol show hostnames "$SLURM_JOB_NODELIST"
 echo "===================================="
 
+
 # === Launch the container job ===
 srun \
   --container-image=/home/ubuntu/torchtitan_cuda128_torch27.sqsh \
   --container-mounts=/home/ubuntu/.cache/huggingface:/root/.cache/huggingface \
-  --container-remap-root \
   --container-writable \
-  --export=ALL,HEADNODE_HOST=$HEADNODE_HOST,MASTER_ADDR=$MASTER_ADDR,MASTER_PORT=$MASTER_PORT \
+  --export=ALL,HEADNODE_HOST=$HEADNODE_HOST,MASTER_ADDR=$MASTER_ADDR,MASTER_PORT=$MASTER_PORT,NCCL_DEBUG=INFO,NCCL_DEBUG_SUBSYS=ALL \
   torchrun --nnodes=2 --nproc_per_node=8 \
            --rdzv_backend=c10d \
            --rdzv_endpoint=$MASTER_ADDR:$MASTER_PORT \
