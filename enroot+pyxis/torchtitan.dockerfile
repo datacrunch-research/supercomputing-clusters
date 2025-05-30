@@ -29,7 +29,6 @@ RUN apt-get update && apt-get install -y \
     libxrender1 \
     libssl-dev \
     libibverbs1 \
-    rdma-core \
     ibverbs-utils \
     libmlx5-1 \
     infiniband-diags

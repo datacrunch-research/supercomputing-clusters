@@ -8,7 +8,7 @@
 #SBATCH -o /home/ubuntu/slurm_logging/headnode/%x_%j_headnode.out
 #SBATCH -e /home/ubuntu/slurm_logging/headnode/%x_%j_headnode.err
 #SBATCH --container-image=/home/ubuntu/torchtitan_cuda128_torch27.sqsh
-#SBATCH --container-name=torchtitan
+#SBATCH --container-name=torchtitan_singlenode
 #SBATCH --container-mounts=/home/ubuntu/.cache/huggingface:/root/.cache/huggingface
 #SBATCH --no-container-mount-home
 #SBATCH --container-remap-root
