@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=50
 #SBATCH --partition=gpus
 #SBATCH --job-name=torchtitan_multinode
-#SBATCH -o /home/ubuntu/slurm_logging/headnode/%x_%j_headnode.out
-#SBATCH -e /home/ubuntu/slurm_logging/headnode/%x_%j_headnode.err
+#SBATCH -o /home/ubuntu/slurm_logging/headnode/%x_%j.out
+#SBATCH -e /home/ubuntu/slurm_logging/headnode/%x_%j.err
 
 # === Compute these HOST-side ===
 HEADNODE_HOST=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n1)

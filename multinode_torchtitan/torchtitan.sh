@@ -4,7 +4,7 @@
 #SBATCH --gpus-per-node=8
 #SBATCH --cpus-per-task=50
 #SBATCH --partition=gpus
-#SBATCH --job-name=torchtitan
+#SBATCH --job-name=torchtitan_multinode
 #SBATCH -o /home/ubuntu/slurm_logging/headnode/%x_%j_headnode.out
 #SBATCH -e /home/ubuntu/slurm_logging/headnode/%x_%j_headnode.err
 
@@ -64,4 +64,4 @@ srun --output=/home/ubuntu/slurm_logging/workernodes/%x_%j_node%N.out --error=/h
     ./torchtitan/train.py --job.config_file ${CONFIG_FILE}
 
 
-# sbatch torchtitan_multinode.sh
+# sbatch torchtitan.sh
