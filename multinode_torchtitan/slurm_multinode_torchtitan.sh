@@ -48,8 +48,8 @@ export NCCL_NET_GDR_LEVEL=5
 export NCCL_IB_DISABLE=0
 export NCCL_NET=IB
 
+cd /home/ubuntu/torchtitan
 
-#printenv
 
 CONFIG_FILE=${CONFIG_FILE:-"./torchtitan/models/llama3/train_configs/debug_model.toml"}
 
@@ -61,7 +61,7 @@ srun --output=/home/ubuntu/slurm_logging/workernodes/%x_%j_node%N.out --error=/h
     --rdzv_id=101 \
     --rdzv_backend=c10d \
     --rdzv_endpoint=$MASTER_ADDR:$MASTER_PORT \
-    ./torchtitan/train.py --job.config_file ${CONFIG_FILE}
+    torchtitan/train.py --job.config_file ${CONFIG_FILE}
 
 
-# sbatch torchtitan.sh
+# sbatch slurm_multinode_torchtitan.sh
