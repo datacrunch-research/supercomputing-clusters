@@ -19,4 +19,4 @@ srun --output=/home/ubuntu/slurm_logging/workernodes/%x_%j_node%N.out --error=/h
  ./run_train.sh
 
 
-# sbatch local_torchtitan.sh
+# sbatch slurm_local_torchtitan.sh
