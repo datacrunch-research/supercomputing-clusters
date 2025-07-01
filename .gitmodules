@@ -1,3 +1,3 @@
-[submodule "tools/ib-traffic-monitor"]
-	path = tools/ib-traffic-monitor
+[submodule "third_party/ib-traffic-monitor"]
+	path = third_party/ib-traffic-monitor
 	url = https://github.com/NVIDIA/ib-traffic-monitor
