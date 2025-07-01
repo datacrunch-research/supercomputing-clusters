@@ -1,3 +1,6 @@
 [submodule "third_party/ib-traffic-monitor"]
 	path = third_party/ib-traffic-monitor
 	url = https://github.com/NVIDIA/ib-traffic-monitor
+[submodule "third_party/datacrunch-health-checks"]
+	path = third_party/datacrunch-health-checks
+	url = https://github.com/datacrunch-research/datacrunch-health-checks.git
