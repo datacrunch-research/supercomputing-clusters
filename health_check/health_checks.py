@@ -503,7 +503,7 @@ GPU 1: NVIDIA H200 (UUID: GPU-9e8682f0-0d01-e118-3a86-008e972bfe2a)
          Link 16: 26.562 GB/s
          Link 17: 26.562 GB/s
 """
-        checker = IBHealthCheck()
+        checker = HealthCheck()
         checker.check_nvlink_speed_consistency(test_fail)
         print(checker.results["nvlink_speed"])
 
