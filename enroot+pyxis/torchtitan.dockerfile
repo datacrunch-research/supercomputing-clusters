@@ -9,7 +9,6 @@ ENV HF_TOKEN=${HF_TOKEN}
 SHELL ["/bin/bash", "-c"]
 
 # Install dependencies
-# llamacpp gcc compilation tools
 RUN apt-get update && apt-get install -y \
     build-essential \
     fzf \
