@@ -9,7 +9,6 @@ ENV HF_TOKEN=${HF_TOKEN}
 SHELL ["/bin/bash", "-c"]
 
 # Install dependencies
-# llamacpp gcc compilation tools
 RUN apt-get update && apt-get install -y \
     build-essential \
     fzf \
@@ -53,4 +52,4 @@ RUN python3 scripts/download_tokenizer.py --repo_id meta-llama/Meta-Llama-3.1-8B
 
 
 # docker build -f torchtitan.dockerfile --build-arg HF_TOKEN="$HF_TOKEN" -t torchtitan_cuda128_torch27 .
-# docker run --gpus all --shm-size 32g --network=host -v /home/rodri/.cache/huggingface:/root/.cache/huggingface --name torchtitan_workload -it --rm --ipc=host torchtitan_cuda128_torch27 bash -c 'CONFIG_FILE="torchtitan/models/llama3/train_configs/debug_model.toml" ./run_train.sh'
+# docker run --gpus all --shm-size 32g --network=host -v /home/ubuntu/.cache/huggingface:/root/.cache/huggingface --name torchtitan_workload -it --rm --ipc=host torchtitan_cuda128_torch27 bash -c 'CONFIG_FILE="./train_configs/llama3_8b.toml" ./run_llama_train.sh'
