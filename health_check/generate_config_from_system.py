@@ -168,6 +168,71 @@ vbios = {
 }
 print(f"vbios: {vbios}")
 
+# NVLink information
+def parse_nvlink_status(nvlink_output):
+    """Parse nvidia-smi nvlink --status output similar to health_checks.py"""
+    nvlink_info = {
+        'gpu_count': 0,
+        'gpu_model': '',
+        'links_per_gpu': 0,
+        'link_speed_gb_s': 0.0,
+        'total_nvlink_bandwidth_per_gpu': 0.0,
+        'links_status': {}
+    }
+    
+    current_gpu = None
+    gpu_models = set()
+    link_speeds = []
+    
+    for line in nvlink_output.splitlines():
+        line = line.strip()
+        if line.startswith("GPU"):
+            # Extract GPU info: "GPU 0: NVIDIA H200 (UUID: ...)"
+            parts = line.split(": ")
+            if len(parts) >= 2:
+                gpu_id = parts[0]  # "GPU 0"
+                gpu_model = parts[1].split(" (")[0]  # "NVIDIA H200"
+                gpu_models.add(gpu_model)
+                current_gpu = gpu_id
+                nvlink_info['links_status'][current_gpu] = {}
+                
+        elif line.startswith("Link") and current_gpu:
+            # Extract link info: "Link 0: 26.562 GB/s"
+            try:
+                parts = line.split(": ")
+                link_id = parts[0].strip()  # "Link 0"
+                speed_str = parts[1].strip()  # "26.562 GB/s"
+                speed_val = float(speed_str.split()[0])  # 26.562
+                
+                nvlink_info['links_status'][current_gpu][link_id] = speed_val
+                link_speeds.append(speed_val)
+            except (ValueError, IndexError):
+                continue
+    
+    # Calculate derived values
+    nvlink_info['gpu_count'] = len(nvlink_info['links_status'])
+    nvlink_info['gpu_model'] = list(gpu_models)[0] if gpu_models else 'Unknown'
+    
+    if nvlink_info['gpu_count'] > 0:
+        links_per_gpu = len(nvlink_info['links_status'][list(nvlink_info['links_status'].keys())[0]])
+        nvlink_info['links_per_gpu'] = links_per_gpu
+        
+        if link_speeds:
+            nvlink_info['link_speed_gb_s'] = max(link_speeds)  # Use max speed found
+            nvlink_info['total_nvlink_bandwidth_per_gpu'] = links_per_gpu * nvlink_info['link_speed_gb_s']
+    
+    return nvlink_info
+
+# Get NVLink status
+nvlink_output = run_cmd('nvidia-smi nvlink --status')
+nvlink_info = parse_nvlink_status(nvlink_output)
+
+# Get topology matrix
+topology_output = run_cmd('nvidia-smi topo -m')
+nvlink_info['topology_matrix'] = topology_output
+
+print(f"NVLink info: {nvlink_info}")
+
 # Docker info
 docker_info = run_cmd('docker info --format "{{json .}}"')
 docker = {
@@ -284,6 +349,7 @@ config = {
     'ib_hcas': ib_hcas,
     'infiniband_error': infiniband_error,
     'vbios': vbios,
+    'nvlink': nvlink_info,
     'docker': docker,
     'flint': flint,
     'infiniband_status': infiniband_status
