@@ -1,8 +1,13 @@
-# torchrun --standalone --nproc_per_node=8 nccl_torch.py --min-size 1MB --max-size 128MB --num-iters 10 --profile --output "results10_128"
+# Execution commands:
+# torchrun --standalone --nproc_per_node=8 nccl_torch.py --min-size 1GB --max-size 16GB --num-iters 20 --profile --output "results1_50GB"
 
 # TORCH_DISTRIBUTED_DEBUG=DETAIL
 # NCCL_DEBUG=INFO
 # NCCL_BLOCKING_WAIT=1 For silent hangs
+
+# TODO:
+# Add support for nccl variables
+# ./all_reduce_perf -b 1G -e 16G -f 2 -g 8
 
 
 import torch
@@ -78,7 +83,10 @@ def main(
     sizes: Optional[List[str]] = typer.Option(None, help="Explicit list of message sizes to test (overrides min/max)."),
     profile: bool = typer.Option(False, help="Enable profiling of the all-reduce operations."),
     output: str = typer.Option("", help="File to write results (optional)."),
-    config_path: str = typer.Option("", help="Path to system config file (auto-detected if not specified).")
+    config_path: str = typer.Option("", help="Path to system config file (auto-detected if not specified)."),
+    dtype: str = typer.Option("bfloat16", help="Data type: float32, float16, bfloat16"),
+    warmup_iters: int = typer.Option(5, help="Number of warmup iterations"),
+    pin_memory: bool = typer.Option(False, help="Use pinned memory for tensors")
 ):
     """NCCL All-Reduce Benchmark with Theoretical Performance Comparison"""
     
@@ -108,6 +116,9 @@ def main(
         print(f"  NVLink per GPU: {nvlink_info.get('links_per_gpu', 'Unknown')} links at {nvlink_info.get('link_speed_gb_s', 'Unknown')} GB/s")
         print(f"  Total NVLink BW: {nvlink_info.get('total_nvlink_bandwidth_per_gpu', 'Unknown')} GB/s per GPU")
         print(f"  World size: {world_size} GPUs")
+        print(f"Test Configuration:")
+        print(f"  Warmup iterations: {warmup_iters}")
+        print(f"  Pinned memory: {pin_memory}")
         print()
 
     # Utility to parse size strings integer bytes
@@ -146,12 +157,27 @@ def main(
     bus_bandwidths_avg, bus_bandwidths_min, bus_bandwidths_max = [], [], [] # bus bandwidth (GB/s) per size
 
     for size in sizes_bytes:
-        # Create tensor of given size
-        num_elems = size // 2  # bf16, 4 if fp32
-        tensor = torch.ones(num_elems, dtype=torch.bfloat16).cuda()
+        # Create tensor of given size with specified dtype
+        dtype_map = {
+            'float32': (torch.float32, 4),
+            'float16': (torch.int8, 1), 
+            'bfloat16': (torch.bfloat16, 2)
+        }
+        
+        if dtype not in dtype_map:
+            raise ValueError(f"Unsupported dtype: {dtype}. Use: {list(dtype_map.keys())}")
+            
+        torch_dtype, bytes_per_elem = dtype_map[dtype]
+        num_elems = size // bytes_per_elem
+        
+        # Create tensor with optimizations
+        if pin_memory:
+            tensor = torch.ones(num_elems, dtype=torch_dtype, pin_memory=True).cuda()
+        else:
+            tensor = torch.ones(num_elems, dtype=torch_dtype).cuda()
 
-        # Warm-up
-        for i in range(2):
+        # Extended warm-up for better performance
+        for i in range(warmup_iters):
             dist.all_reduce(tensor)
             torch.cuda.synchronize()
 
@@ -185,10 +211,10 @@ def main(
             t_min = min(times)
             t_max = max(times)
             
-            # Compute both algorithm and bus bandwidth
+            # Compute both algorithm and bus bandwidth: bandwidth is inversely proportional to time
             alg_bw_avg, bus_bw_avg = calculate_bandwidths(size, t_avg, world_size)
-            alg_bw_min, bus_bw_min = calculate_bandwidths(size, t_max, world_size)  # t_max gives lowest bandwidth
-            alg_bw_max, bus_bw_max = calculate_bandwidths(size, t_min, world_size)  # t_min gives highest bandwidth
+            alg_bw_min, bus_bw_min = calculate_bandwidths(size, t_max, world_size)  # t_max gives lowest bandwidth (worst case)  
+            alg_bw_max, bus_bw_max = calculate_bandwidths(size, t_min, world_size)  # t_min gives highest bandwidth (best case)
 
             latencies_avg.append(t_avg)
             latencies_min.append(t_min)
