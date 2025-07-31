@@ -36,6 +36,8 @@ RUN apt-get update && apt-get install -y \
 
 # Cloning the repo
 RUN git clone https://github.com/pytorch/torchtitan
+# Ensuring a stable commit to crystallize the testing environment
+RUN cd torchtitan && git checkout f4048f8e1b36827156c4dc861c9680333a8542f9 
 
 # Change to the repo directory using WORKDIR
 WORKDIR /workspace/torchtitan
