@@ -2,9 +2,9 @@
 # NCCL All‑Reduce benchmark with optional tensor pre‑allocation
  #------------------------------------------------------------
  #Usage example (8 GPUs):
- #    torchrun --standalone --nproc_per_node=8 nccl_torch_prealloc.py \
+ #    torchrun --standalone --nproc_per_node=8 nccl_torch.py \
  #              --min-size 1GB --max-size 16GB --num-iters 20 \
- #              --pin-memory --preallocate false
+ #              --pin-memory --preallocate
  
  # Set --preallocate true (default) to allocate each tensor **once** and reuse it
  # across warm‑up and timed iterations, ensuring that no allocation or host→device
