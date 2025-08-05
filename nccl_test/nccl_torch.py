@@ -34,7 +34,7 @@ def load_system_config():
         if os.path.exists(path):
             with open(path, "r") as f:
                 return json.load(f)
-    print("System config not found. Run generate_config_from_system.py first for theoretical comparisons.")
+    print("System config not found. Run health_check/generate_config_from_system.py first for theoretical comparisons.")
     return None
 
 
