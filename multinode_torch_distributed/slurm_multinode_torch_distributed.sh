@@ -26,4 +26,4 @@ srun --output=/home/ubuntu/slurm_logging/workernodes/multinode_torch_test_%j_nod
   --rdzv_id=42 \
   --rdzv_backend=c10d \
   --rdzv_endpoint=$MASTER_ADDR:$MASTER_PORT \
-  /home/ubuntu/cluster-job-orchestration/multinode_torch_distributed/multinode_torch_distributed.py
+  /home/ubuntu/supercomputing-clusters/multinode_torch_distributed/multinode_torch_distributed.py
