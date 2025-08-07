@@ -332,7 +332,7 @@ def classify_network_type(adapters):
 # Care, if there are no infiniband adapters, the function will return an Ethernet as network type and 0 active devices with empty list of device names
 classified_adapters = classify_network_type(devices_info)
 
-ib_adapters = [a['name'] for a in devices_info if a.get('link_layer') == 'InfiniBand' and a.get('port_state') == 'Up']
+ib_adapters = [a['name'] for a in devices_info if a.get('link_layer') == 'InfiniBand' and a.get('port_state') == 'Active']
 infiniband_status['active_devices'] = len(ib_adapters)
 infiniband_status['network_type'] = list( adapter['network_type'] for adapter in classified_adapters)
 infiniband_status['device_names'] = ib_adapters
