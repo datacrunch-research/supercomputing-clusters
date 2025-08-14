@@ -54,4 +54,5 @@ RUN python3 scripts/download_tokenizer.py --repo_id meta-llama/Meta-Llama-3.1-8B
 
 
 # docker build -f torchtitan.dockerfile --build-arg HF_TOKEN="$HF_TOKEN" -t torchtitan_cuda128_torch27 .
-# docker run --gpus all --shm-size 32g --network=host -v /home/ubuntu/.cache/huggingface:/root/.cache/huggingface --name torchtitan_workload -it --rm --ipc=host torchtitan_cuda128_torch27 bash -c 'CONFIG_FILE="./train_configs/llama3_8b.toml" ./run_llama_train.sh'
+# docker run --gpus all --shm-size 32g --network=host -v /mnt/local_disk/huggingface:/root/.cache/huggingface --name torchtitan_workload -it --rm --ipc=host torchtitan_cuda128_torch27 bash -c 'CONFIG_FILE="./train_configs/llama3_8b.toml" ./run_llama_train.sh'
+# enroot import -o /home/ubuntu/torchtitan_cuda128_torch27.sqsh dockerd://torchtitan_cuda128_torch27
