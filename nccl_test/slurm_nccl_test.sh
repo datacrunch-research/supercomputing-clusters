@@ -24,5 +24,6 @@ export LD_LIBRARY_PATH=/usr/mpi/gcc/openmpi-4.1.7rc1/lib:$LD_LIBRARY_PATH
 echo "[INFO] Running on nodes:"
 scontrol show hostnames $SLURM_NODELIST
 
+cat /etc/mpihosts > hostfile.txt 
 # Run the test
 srun --mpi=pmix --output=SLURM_logs/workernodes_logs1/nccl_test_%j_node%N.out --error=SLURM_logs/workernodes_logs1/nccl_test_%j_node%N.err $NCCL_TEST_BINARY -b 1M -e 1G -f 2 -g 8
